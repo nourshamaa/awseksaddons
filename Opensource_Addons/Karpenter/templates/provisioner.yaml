@@ -1,0 +1,56 @@
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: default
+spec:
+  # References cloud provider-specific custom resource, see your cloud provider specific documentation
+  providerRef:
+    name: default
+
+  # Requirements that constrain the parameters of provisioned nodes.
+  # These requirements are combined with pod.spec.affinity.nodeAffinity rules.
+  # Operators { In, NotIn } are supported to enable including or excluding values
+  requirements:
+    - key: "karpenter.k8s.aws/instance-category"
+      operator: In
+      values: 
+        - "c"
+        - "m"
+    - key: kubernetes.io/os
+      operator: In
+      values: ["linux"]        
+    - key: "karpenter.k8s.aws/instance-cpu"
+      operator: In
+      values:
+        - "4"
+    - key: "karpenter.k8s.aws/instance-generation"
+      operator: Gt
+      values:
+        - "2"
+    - key: "topology.kubernetes.io/zone"
+      operator: In
+      values: 
+        - "eu-west-1a", 
+        - "eu-west-1b"
+    - key: "kubernetes.io/arch"
+      operator: In
+      values:
+        - "amd64"
+    - key: "karpenter.sh/capacity-type" # If not included, the webhook for the AWS cloud provider will default to on-demand
+      operator: In
+      values:
+        - "on-demand"
+
+  # Enables consolidation which attempts to reduce cluster cost by both removing un-needed nodes and down-sizing those
+  # that can't be removed.  Mutually exclusive with the ttlSecondsAfterEmpty parameter.
+#   consolidation:
+#     enabled: true
+
+  # If omitted, the feature is disabled and nodes will never expire.  If set to less time than it requires for a node
+  # to become ready, the node may expire before any pods successfully start.
+  # ttlSecondsUntilExpired: 2592000 # 30 Days = 60 * 60 * 24 * 30 Seconds;
+
+  # Priority given to the provisioner when the scheduler considers which provisioner
+  # to select. Higher weights indicate higher priority when comparing provisioners.
+  # Specifying no weight is equivalent to specifying a weight of 0.
+  weight: 10
